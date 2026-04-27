@@ -15,9 +15,9 @@ It is designed to avoid:
 
 What you'll need:
 
-Raspberry Pi W2
-A Pi Zero USB Dongle Board/case (preferably) Check Amazon for "Geekworm USB Dongle Board"
-MicroSD card for your OS and drive image (Raspberry Pi OS Lite), 16G+ Recommended
+Raspberry Pi W2<br>
+A Pi Zero USB Dongle Board/case (preferably) Check Amazon for "Geekworm USB Dongle Board"<br>
+MicroSD card for your OS and drive image (Raspberry Pi OS Lite), 16G+ Recommended<br>
 
 ```
 sudo apt update
