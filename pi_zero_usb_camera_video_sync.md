@@ -49,19 +49,19 @@ sudo apt install util-linux dosfstools
 
 ## Enable required modules
 
-### `/etc/modules`
+### Edit `/etc/modules`
 
 ```
 dwc2
 ```
 
-### `/boot/firmware/config.txt`
+### Edit `/boot/firmware/config.txt`
 
 ```
 dtoverlay=dwc2
 ```
 
-### `/boot/firmware/cmdline.txt`
+### Edit `/boot/firmware/cmdline.txt`
 
 (Add to existing line, do NOT create a new line)
 
