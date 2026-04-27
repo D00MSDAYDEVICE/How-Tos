@@ -6,6 +6,6 @@ This is a collection of useful things I've created or collected
 
 Useful command scripts:<br>
 [Dockers](https://github.com/D00MSDAYDEVICE/How-Tos/blob/main/dockers.sh) - Colour coded list of dockers, stauts, size and ports<br>
-[Ports](https://github.com/D00MSDAYDEVICE/How-Tos/blob/main/ports.sh) - Colour coded list of listening ports<br>
+[Ports](https://github.com/D00MSDAYDEVICE/How-Tos/blob/main/ports.sh) - Colour coded list of listening ports, what's using them and PIDs<br>
 Place in these custom commands in: /usr/local/bin<br>
 chmod +x and the .sh suffix can be removed.
