@@ -192,40 +192,113 @@ This script performs a "sync" to ensure any cached files are written to the "dri
 
 SRC="/mnt/usb_share"
 DEST="/security"
+IMAGE="/piusb.bin"
 LOG="/var/log/camera-sync.log"
 
-echo "=== $(date) camera sync started ===" >> "$LOG"
+echo "=== $(date) camera sync service started ===" >> "$LOG"
 
 while true; do
-    # 🔥 CRITICAL: refresh FAT view
+
+    #########################################################
+    # HEALTH CHECK: SMB SHARE
+    #########################################################
+
+    if ! mountpoint -q "$DEST"; then
+        echo "$(date) WARNING: $DEST not mounted, attempting mount -a" >> "$LOG"
+
+        mount -a >> "$LOG" 2>&1
+        sleep 5
+
+        if ! mountpoint -q "$DEST"; then
+            echo "$(date) ERROR: failed to mount $DEST" >> "$LOG"
+            sleep 30
+            continue
+        fi
+
+        echo "$(date) SUCCESS: remounted $DEST" >> "$LOG"
+    fi
+
+    #########################################################
+    # HEALTH CHECK: USB IMAGE LOOP MOUNT
+    #########################################################
+
+    if ! mountpoint -q "$SRC"; then
+        echo "$(date) WARNING: $SRC not mounted, attempting recovery" >> "$LOG"
+
+        # Attach loop device if missing
+        if ! losetup -a | grep -q "$IMAGE"; then
+            losetup -Pf "$IMAGE" >> "$LOG" 2>&1
+            sleep 2
+        fi
+
+        LOOPDEV=$(losetup -a | grep "$IMAGE" | head -n1 | cut -d: -f1)
+
+        if [ -z "$LOOPDEV" ]; then
+            echo "$(date) ERROR: unable to locate loop device for $IMAGE" >> "$LOG"
+            sleep 30
+            continue
+        fi
+
+        # Mount partition
+        mount "${LOOPDEV}p1" "$SRC" >> "$LOG" 2>&1
+        sleep 2
+
+        if ! mountpoint -q "$SRC"; then
+            echo "$(date) ERROR: failed to mount $SRC" >> "$LOG"
+            sleep 30
+            continue
+        fi
+
+        echo "$(date) SUCCESS: remounted $SRC using ${LOOPDEV}p1" >> "$LOG"
+    fi
+
+    #########################################################
+    # FORCE FAT REFRESH
+    #########################################################
+
     sync
     echo 3 > /proc/sys/vm/drop_caches
 
+    #########################################################
+    # FILE SCAN
+    #########################################################
+
     find "$SRC" -type f -print0 | while IFS= read -r -d '' file; do
+
+        # Verify file still exists
+        [ ! -f "$file" ] && continue
 
         rel="${file#$SRC/}"
         dest_file="$DEST/$rel"
 
+        # Skip already copied files
         [ -f "$dest_file" ] && continue
 
-        # Skip files still being written (<10s old)
-        age=$(( $(date +%s) - $(stat -c %Y "$file") ))
+        # Skip files younger than 10 seconds
+        age=$(( $(date +%s) - $(stat -c %Y "$file" 2>/dev/null) ))
+
         [ "$age" -lt 10 ] && continue
 
+        # File size stability check
         size1=$(stat -c%s "$file" 2>/dev/null)
+
         sleep 2
+
         size2=$(stat -c%s "$file" 2>/dev/null)
 
+        # Skip if file vanished
+        [ -z "$size1" ] || [ -z "$size2" ] && continue
+
         if [ "$size1" = "$size2" ] && [ "$size1" -gt 0 ]; then
+
             mkdir -p "$(dirname "$dest_file")"
 
             if rsync -a "$file" "$dest_file" >> "$LOG" 2>&1; then
-                echo "$(date) copied: $rel ($size1 bytes)" >> "$LOG"
+                echo "$(date) COPIED: $rel ($size1 bytes)" >> "$LOG"
             else
                 echo "$(date) ERROR copying: $rel" >> "$LOG"
             fi
         fi
-
     done
 
     sleep 10
